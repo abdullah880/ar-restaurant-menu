@@ -168,7 +168,8 @@
         price: (dish.price || "").replace(/[^0-9.]/g, ""),
         priceCurrency: "USD",
       },
-      image: dish.poster || "",
+      // image: dish.poster || "",
+      image:  "",
     };
     script.textContent = JSON.stringify(data);
   };
