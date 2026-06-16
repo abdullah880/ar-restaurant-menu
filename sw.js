@@ -1,11 +1,21 @@
 const CACHE_NAME = "ar-menu-v1";
+const BASE_URL = "/ar-restaurant-menu"; // Your repo name
+// const STATIC_ASSETS = [
+//   "/",
+//   "/index.html",
+//   "/styles/app.css",
+//   "/js/app.js",
+//   "/js/dishes.js",
+//   "/manifest.json",
+// ];
+
 const STATIC_ASSETS = [
-  "/",
-  "/index.html",
-  "/styles/app.css",
-  "/js/app.js",
-  "/js/dishes.js",
-  "/manifest.json",
+  `${BASE_URL}/`,
+  `${BASE_URL}/index.html`,
+  `${BASE_URL}/styles/app.css`,
+  `${BASE_URL}/js/app.js`,
+  `${BASE_URL}/js/dishes.js`,
+  `${BASE_URL}/manifest.json`,
 ];
 
 // Install — pre-cache static assets

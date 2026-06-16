@@ -16,7 +16,7 @@ const DISHES = {
     prepTime: "12 min",
     calories: "680 kcal",
     badge: "Chef's Choice",
-    poster: "models/burger-poster.jpg",
+    poster: "models/burger-poster.png",
     tags: ["signature", "beef"],
   },
   pizza: {
@@ -29,7 +29,7 @@ const DISHES = {
     prepTime: "15 min",
     calories: "820 kcal",
     badge: "Wood-Fired",
-    poster: "models/pizza-poster.jpg",
+    poster: "models/pizza-poster.png",
     tags: ["vegetarian", "italian"],
   },
   sushi: {
@@ -42,7 +42,7 @@ const DISHES = {
     prepTime: "10 min",
     calories: "450 kcal",
     badge: "Premium",
-    poster: "models/sushi-poster.jpg",
+    poster: "models/sushi-poster.png",
     tags: ["seafood", "japanese"],
   },
   pasta: {
@@ -55,7 +55,7 @@ const DISHES = {
     prepTime: "18 min",
     calories: "720 kcal",
     badge: "Signature",
-    poster: "models/pasta-poster.jpg",
+    poster: "models/pasta-poster.png",
     tags: ["italian", "truffle"],
   },
   steak: {
@@ -68,7 +68,7 @@ const DISHES = {
     prepTime: "22 min",
     calories: "950 kcal",
     badge: "Premium",
-    poster: "models/steak-poster.jpg",
+    poster: "models/steak-poster.png",
     tags: ["beef", "premium"],
   },
 };

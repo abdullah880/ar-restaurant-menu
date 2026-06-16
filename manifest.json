@@ -2,7 +2,7 @@
   "name": "AR Restaurant Menu",
   "short_name": "AR Menu",
   "description": "Experience our dishes in Augmented Reality",
-  "start_url": "/",
+  "start_url": "/ar-restaurant-menu/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#faf8f5",
