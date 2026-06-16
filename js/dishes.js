@@ -5,6 +5,9 @@
  *  2. Add an entry below
  * That's it — no other changes needed.
  */
+
+const GITHUB_CDN = "https://cdn.jsdelivr.net/gh/abdullah880/ar-restaurant-menu@main";
+
 const DISHES = {
   burger: {
     id: "burger",
