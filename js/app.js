@@ -114,7 +114,7 @@
     // Configure model-viewer
     modelViewer.setAttribute("src", dish.model);
     modelViewer.setAttribute("alt", `3D view of ${dish.name}`);
-    if (dish.poster) modelViewer.setAttribute("poster", dish.poster);
+    // if (dish.poster) modelViewer.setAttribute("poster", dish.poster);
 
     // Event listeners for model lifecycle
     modelViewer.addEventListener("load", onModelLoaded, { once: true });
