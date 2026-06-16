@@ -113,7 +113,11 @@
 
     // Configure model-viewer
     modelViewer.setAttribute("src", dish.model);
+    // <<<<<<< HEAD
     // modelViewer.setAttribute("alt", `3D view of ${dish.name}`);
+    // =======
+    modelViewer.setAttribute("alt", `3D view of ${dish.name}`);
+    // >>>>>>> 73798911135de6178240b16365c9cf4c6d914abe
     // if (dish.poster) modelViewer.setAttribute("poster", dish.poster);
 
     // Event listeners for model lifecycle
@@ -168,7 +172,8 @@
         price: (dish.price || "").replace(/[^0-9.]/g, ""),
         priceCurrency: "USD",
       },
-      image: dish.poster || "",
+      // image: dish.poster || "",
+      image: "",
     };
     script.textContent = JSON.stringify(data);
   };
