@@ -1,299 +1,421 @@
 /**
- * AR Restaurant Menu — Main Application
- * Handles URL routing, model loading, AR integration, and UI state.
+ * app.js — AR Restaurant Menu · Main Application
+ *
+ * Responsibilities:
+ *   - URL routing (dish= query param)
+ *   - Model loading with poster, timeout, and error recovery
+ *   - UI state management (loading / app / error screens)
+ *   - AR activation with iOS-capability check
+ *   - Share API with clipboard fallback
+ *   - Analytics event dispatch
+ *   - View controls (reset, fullscreen)
  */
-(function () {
-  "use strict";
 
-  // =========================================================================
-  // DOM References
-  // =========================================================================
-  const $ = (id) => document.getElementById(id);
-  const loadingScreen = $("loadingScreen");
-  const errorScreen = $("errorScreen");
-  const app = $("app");
-  const modelViewer = $("modelViewer");
-  const dishTitle = $("dishTitle");
-  const dishDescription = $("dishDescription");
-  const dishBadge = $("dishBadge");
-  const pageTitle = $("pageTitle");
-  const arButton = $("arButton");
-  const shareBtn = $("shareBtn");
-  const resetViewBtn = $("resetViewBtn");
-  const fullscreenBtn = $("fullscreenBtn");
-  const interactionHint = $("interactionHint");
-  const toast = $("toast");
-  const year = $("year");
+import {DISHES} from "./prev-dishes.js";
 
-  // =========================================================================
-  // State
-  // =========================================================================
-  let currentDish = null;
+// ─────────────────────────────────────────────────────────────────────────────
+// Config
+// ─────────────────────────────────────────────────────────────────────────────
 
-  // =========================================================================
-  // Utilities
-  // =========================================================================
-  const getQueryParam = (key) => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get(key);
-  };
+/** Canonical origin used for share URLs — update before deploying. */
+const CANONICAL_BASE = "https://yourrestaurant.com";
 
-  const sanitizeDishId = (id) => {
-    if (!id) return null;
-    return String(id)
-      .toLowerCase()
-      .replace(/[^a-z0-9-_]/g, "");
-  };
+/** Max dish ID length to guard against oversized query params. */
+const DISH_ID_MAX_LEN = 64;
 
-  const showToast = (message, duration = 2500) => {
-    toast.textContent = message;
-    toast.classList.add("show");
-    setTimeout(() => toast.classList.remove("show"), duration);
-  };
+/** ms before a slow-loading model triggers a fallback notice. */
+const MODEL_LOAD_TIMEOUT_MS = 10_000;
 
-  const trackEvent = (eventName, data = {}) => {
-    // Analytics hook — integrate with GA4, Segment, etc.
-    if (window.gtag) {
-      window.gtag("event", eventName, data);
+/** ms the interaction hint stays visible after load. */
+const HINT_DISMISS_DELAY_MS = 4_000;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DOM References  (resolved once, referenced everywhere)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const el = (id) => document.getElementById(id);
+
+const dom = {
+  loadingScreen: el("loadingScreen"),
+  errorScreen: el("errorScreen"),
+  app: el("app"),
+  modelViewer: el("modelViewer"),
+  dishTitle: el("dishTitle"),
+  dishDesc: el("dishDescription"),
+  dishBadge: el("dishBadge"),
+  pageTitle: el("pageTitle"),
+  arButton: el("arButton"),
+  shareBtn: el("shareBtn"),
+  resetViewBtn: el("resetViewBtn"),
+  fullscreenBtn: el("fullscreenBtn"),
+  hint: el("interactionHint"),
+  toast: el("toast"),
+  year: el("year"),
+  metaPrice: el("metaPrice"),
+  metaTime: el("metaTime"),
+  metaCalories: el("metaCalories"),
+  structuredData: el("structuredData"),
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// State
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** @type {import("./prev-dishes.js").Dish | null} */
+let currentDish = null;
+
+/** @type {ReturnType<typeof setTimeout> | null} */
+let modelLoadTimer = null;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Utilities
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Read a single query-string parameter from the current URL.
+ * @param {string} key
+ * @returns {string | null}
+ */
+const getParam = (key) => new URLSearchParams(window.location.search).get(key);
+
+/**
+ * Sanitize a raw dish ID: lowercase, strip non-alphanumeric chars, enforce max length.
+ * @param {string | null} raw
+ * @returns {string | null}
+ */
+const sanitizeDishId = (raw) => {
+  if (!raw) return null;
+  const clean = String(raw)
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]/g, "");
+  return clean.length > 0 && clean.length <= DISH_ID_MAX_LEN ? clean : null;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Toast
+// ─────────────────────────────────────────────────────────────────────────────
+
+let toastTimer = null;
+
+/**
+ * Show a temporary status message at the bottom of the screen.
+ * @param {string} message
+ * @param {number} [duration=2500]
+ */
+const showToast = (message, duration = 2500) => {
+  dom.toast.textContent = message;
+  dom.toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => dom.toast.classList.remove("show"), duration);
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Analytics
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Queued events fired before GA4 script is ready. */
+const _eventQueue = [];
+
+/**
+ * Fire an analytics event. Queues silently if window.gtag is not yet available.
+ * @param {string} name
+ * @param {Record<string, unknown>} [data]
+ */
+const track = (name, data = {}) => {
+  if (typeof window.gtag === "function") {
+    // Drain any queued events first
+    while (_eventQueue.length) {
+      const {n, d} = _eventQueue.shift();
+      window.gtag("event", n, d);
     }
-    console.debug("[Analytics]", eventName, data);
-  };
-
-  // =========================================================================
-  // UI State Management
-  // =========================================================================
-  const showLoading = () => {
-    loadingScreen.classList.remove("hidden");
-    errorScreen.classList.add("hidden");
-    app.classList.add("hidden");
-  };
-
-  const showError = () => {
-    loadingScreen.classList.add("hidden");
-    errorScreen.classList.remove("hidden");
-    app.classList.add("hidden");
-    document.title = "Dish Not Found — AR Restaurant";
-  };
-
-  const showApp = () => {
-    loadingScreen.classList.add("hidden");
-    errorScreen.classList.add("hidden");
-    app.classList.remove("hidden");
-  };
-
-  // =========================================================================
-  // Model Loading
-  // =========================================================================
-  const loadDish = (dish) => {
-    currentDish = dish;
-
-    // Update page metadata
-    document.title = `${dish.name} — AR Restaurant`;
-    pageTitle.textContent = dish.name;
-    dishTitle.textContent = dish.name;
-    dishDescription.textContent = dish.description;
-    dishBadge.textContent = dish.badge || "Featured";
-
-    // Update meta info
-    const priceEl = $("metaPrice");
-    const timeEl = $("metaTime");
-    const calEl = $("metaCalories");
-    if (priceEl)
-      priceEl.querySelector(".meta-value").textContent = dish.price || "—";
-    if (timeEl)
-      timeEl.querySelector(".meta-value").textContent = dish.prepTime || "—";
-    if (calEl)
-      calEl.querySelector(".meta-value").textContent = dish.calories || "—";
-
-    // Update Open Graph dynamically
-    updateOpenGraph(dish);
-
-    // Update structured data
-    updateStructuredData(dish);
-
-    // Configure model-viewer
-    modelViewer.setAttribute("src", dish.model);
-    // <<<<<<< HEAD
-    // modelViewer.setAttribute("alt", `3D view of ${dish.name}`);
-    // =======
-    modelViewer.setAttribute("alt", `3D view of ${dish.name}`);
-    // >>>>>>> 73798911135de6178240b16365c9cf4c6d914abe
-    // if (dish.poster) modelViewer.setAttribute("poster", dish.poster);
-
-    // Event listeners for model lifecycle
-    modelViewer.addEventListener("load", onModelLoaded, { once: true });
-    modelViewer.addEventListener("error", onModelError, { once: true });
-
-    showApp();
-    trackEvent("dish_view", { dish_id: dish.id, dish_name: dish.name });
-  };
-
-  const onModelLoaded = () => {
-    loadingScreen.classList.add("hidden");
-    // Hide interaction hint after a few seconds
-    setTimeout(() => {
-      if (interactionHint) interactionHint.classList.add("fade-out");
-    }, 4000);
-    trackEvent("model_loaded", { dish_id: currentDish.id });
-  };
-
-  const onModelError = (e) => {
-    console.error("Model load error:", e);
-    showToast("Unable to load 3D model. Please try again.");
-    trackEvent("model_error", { dish_id: currentDish.id });
-  };
-
-  // =========================================================================
-  // SEO / Metadata
-  // =========================================================================
-  const updateOpenGraph = (dish) => {
-    const setMeta = (property, content) => {
-      const el =
-        document.querySelector(`meta[property="${property}"]`) ||
-        document.querySelector(`meta[name="${property}"]`);
-      if (el) el.setAttribute("content", content);
-    };
-    setMeta("og:title", `${dish.name} — AR Restaurant Menu`);
-    setMeta("og:description", dish.description);
-    setMeta("twitter:title", `${dish.name} — AR Restaurant Menu`);
-    setMeta("twitter:description", dish.description);
-  };
-
-  const updateStructuredData = (dish) => {
-    const script = $("structuredData");
-    if (!script) return;
-    const data = {
-      "@context": "https://schema.org",
-      "@type": "MenuItem",
-      name: dish.name,
-      description: dish.description,
-      offers: {
-        "@type": "Offer",
-        price: (dish.price || "").replace(/[^0-9.]/g, ""),
-        priceCurrency: "USD",
-      },
-      // image: dish.poster || "",
-      image: "",
-    };
-    script.textContent = JSON.stringify(data);
-  };
-
-  // =========================================================================
-  // AR Integration
-  // =========================================================================
-  const activateAR = () => {
-    if (!modelViewer.canActivateAR) {
-      showToast("AR is not supported on this device");
-      trackEvent("ar_unsupported", { dish_id: currentDish.id });
-      return;
-    }
-    modelViewer.activateAR();
-    trackEvent("ar_activate", { dish_id: currentDish.id });
-  };
-
-  // =========================================================================
-  // Share
-  // =========================================================================
-  const shareDish = async () => {
-    if (!currentDish) return;
-    const url = window.location.href;
-    const shareData = {
-      title: currentDish.name,
-      text: `Check out ${currentDish.name} in AR!`,
-      url,
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-        trackEvent("share", { method: "native", dish_id: currentDish.id });
-      } catch (err) {
-        if (err.name !== "AbortError") fallbackCopy(url);
-      }
-    } else {
-      fallbackCopy(url);
-    }
-  };
-
-  const fallbackCopy = async (text) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      showToast("Link copied to clipboard");
-      trackEvent("share", { method: "clipboard" });
-    } catch {
-      showToast("Unable to share");
-    }
-  };
-
-  // =========================================================================
-  // View Controls
-  // =========================================================================
-  const resetView = () => {
-    if (
-      modelViewer &&
-      typeof modelViewer.resetTurntableRotation === "function"
-    ) {
-      modelViewer.resetTurntableRotation();
-    }
-    if (modelViewer && typeof modelViewer.cameraOrbit === "string") {
-      modelViewer.cameraOrbit = "0deg 75deg 105%";
-    }
-    modelViewer.dispatchEvent(new CustomEvent("reset-view"));
-    showToast("View reset");
-    trackEvent("reset_view", { dish_id: currentDish.id });
-  };
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      (
-        modelViewer.requestFullscreen || modelViewer.webkitRequestFullscreen
-      )?.call(modelViewer);
-    } else {
-      (document.exitFullscreen || document.webkitExitFullscreen)?.call(
-        document,
-      );
-    }
-    trackEvent("fullscreen_toggle", { dish_id: currentDish.id });
-  };
-
-  // =========================================================================
-  // Initialization
-  // =========================================================================
-  const init = () => {
-    // Set current year
-    if (year) year.textContent = new Date().getFullYear();
-
-    // Read dish parameter
-    const rawDishId = getQueryParam("dish");
-    const dishId = sanitizeDishId(rawDishId);
-
-    if (!dishId || !DISHES[dishId]) {
-      showError();
-      trackEvent("dish_not_found", { requested_id: rawDishId });
-      return;
-    }
-
-    // Load the dish
-    loadDish(DISHES[dishId]);
-
-    // Bind events
-    arButton.addEventListener("click", activateAR);
-    shareBtn.addEventListener("click", shareDish);
-    resetViewBtn.addEventListener("click", resetView);
-    fullscreenBtn.addEventListener("click", toggleFullscreen);
-
-    // Hide hint on first interaction
-    const hideHint = () => {
-      if (interactionHint) interactionHint.classList.add("fade-out");
-      modelViewer.removeEventListener("camera-change", hideHint);
-    };
-    modelViewer.addEventListener("camera-change", hideHint);
-  };
-
-  // Boot
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+    window.gtag("event", name, data);
   } else {
-    init();
+    _eventQueue.push({n: name, d: data});
   }
-})();
+  console.debug("[Analytics]", name, data);
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI State
+// ─────────────────────────────────────────────────────────────────────────────
+
+const showLoading = () => {
+  dom.loadingScreen.classList.remove("hidden");
+  dom.errorScreen.classList.add("hidden");
+  dom.app.classList.add("hidden");
+};
+
+const showApp = () => {
+  dom.loadingScreen.classList.add("hidden");
+  dom.errorScreen.classList.add("hidden");
+  dom.app.classList.remove("hidden");
+};
+
+const showError = () => {
+  dom.loadingScreen.classList.add("hidden");
+  dom.errorScreen.classList.remove("hidden");
+  dom.app.classList.add("hidden");
+  document.title = "Dish Not Found — AR Restaurant";
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SEO / Metadata
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Set a <meta> tag content by property or name attribute.
+ * @param {string} key
+ * @param {string} value
+ */
+const setMeta = (key, value) => {
+  const el =
+    document.querySelector(`meta[property="${key}"]`) ||
+    document.querySelector(`meta[name="${key}"]`);
+  if (el) el.setAttribute("content", value);
+};
+
+/** @param {import("./prev-dishes.js").Dish} dish */
+const updateOpenGraph = (dish) => {
+  const title = `${dish.name} — AR Restaurant Menu`;
+  setMeta("og:title", title);
+  setMeta("og:description", dish.description);
+  setMeta("twitter:title", title);
+  setMeta("twitter:description", dish.description);
+};
+
+/** @param {import("./prev-dishes.js").Dish} dish */
+const updateStructuredData = (dish) => {
+  if (!dom.structuredData) return;
+  const rawPrice = (dish.price ?? "").replace(/[^0-9.]/g, "");
+  dom.structuredData.textContent = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "MenuItem",
+    name: dish.name,
+    description: dish.description,
+    image: dish.poster ?? "",
+    offers: {
+      "@type": "Offer",
+      price: rawPrice,
+      priceCurrency: "USD",
+    },
+  });
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Model Preload Hint
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Insert a <link rel="preload"> so the browser starts fetching the .glb
+ * as early as possible — before model-viewer even initialises.
+ * @param {string} url
+ */
+const preloadModel = (url) => {
+  const link = document.createElement("link");
+  link.rel = "preload";
+  link.as = "fetch";
+  link.href = url;
+  link.crossOrigin = "anonymous";
+  document.head.appendChild(link);
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dish Loading
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** @param {import("./prev-dishes.js").Dish} dish */
+const loadDish = (dish) => {
+  currentDish = dish;
+
+  // Page metadata
+  const pageTitle = `${dish.name} — AR Restaurant`;
+  document.title = pageTitle;
+  dom.pageTitle.textContent = dish.name;
+  dom.dishTitle.textContent = dish.name;
+  dom.dishDesc.textContent = dish.description;
+  dom.dishBadge.textContent = dish.badge ?? "Featured";
+
+  // Meta info grid
+  const setValue = (container, value) => {
+    container?.querySelector(".meta-value")?.textContent != null &&
+      (container.querySelector(".meta-value").textContent = value ?? "—");
+  };
+  setValue(dom.metaPrice, dish.price);
+  setValue(dom.metaTime, dish.prepTime);
+  setValue(dom.metaCalories, dish.calories);
+
+  // SEO
+  updateOpenGraph(dish);
+  updateStructuredData(dish);
+
+  // Preload the model asset
+  preloadModel(dish.model);
+
+  // Configure model-viewer
+  const mv = dom.modelViewer;
+  mv.setAttribute("src", dish.model);
+  mv.setAttribute("alt", `3D view of ${dish.name}`);
+  if (dish.poster) mv.setAttribute("poster", dish.poster);
+  if (dish.iosSrc) mv.setAttribute("ios-src", dish.iosSrc);
+  if (dish.cameraOrbit) mv.setAttribute("camera-orbit", dish.cameraOrbit);
+
+  // Model lifecycle
+  mv.addEventListener("load", onModelLoaded, {once: true});
+  mv.addEventListener("error", onModelError, {once: true});
+
+  // Slow-load timeout
+  modelLoadTimer = setTimeout(() => {
+    showToast("Taking longer than expected…", 4000);
+    track("model_slow", {dish_id: dish.id});
+  }, MODEL_LOAD_TIMEOUT_MS);
+
+  showApp();
+  track("dish_view", {dish_id: dish.id, dish_name: dish.name});
+};
+
+const onModelLoaded = () => {
+  clearTimeout(modelLoadTimer);
+  dom.loadingScreen.classList.add("hidden");
+  setTimeout(dismissHint, HINT_DISMISS_DELAY_MS);
+  track("model_loaded", {dish_id: currentDish.id});
+};
+
+const onModelError = () => {
+  clearTimeout(modelLoadTimer);
+  console.error("[AR Menu] Failed to load model for:", currentDish?.id);
+  showToast("Couldn't load 3D model. Showing preview instead.");
+  // Fallback: show the poster if available so there's something visible
+  if (currentDish?.poster) {
+    dom.modelViewer.setAttribute("poster", currentDish.poster);
+  }
+  track("model_error", {dish_id: currentDish?.id});
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Interaction Hint
+// ─────────────────────────────────────────────────────────────────────────────
+
+const dismissHint = () => dom.hint?.classList.add("fade-out");
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AR
+// ─────────────────────────────────────────────────────────────────────────────
+
+const activateAR = () => {
+  if (!dom.modelViewer.canActivateAR) {
+    showToast("AR is not supported on this device");
+    track("ar_unsupported", {dish_id: currentDish?.id});
+    return;
+  }
+  dom.modelViewer.activateAR();
+  track("ar_activate", {dish_id: currentDish?.id});
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Share
+// ─────────────────────────────────────────────────────────────────────────────
+
+const buildShareUrl = () =>
+  currentDish
+    ? `${CANONICAL_BASE}?dish=${currentDish.id}`
+    : window.location.href;
+
+const copyToClipboard = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast("Link copied to clipboard");
+    track("share", {method: "clipboard", dish_id: currentDish?.id});
+  } catch {
+    showToast("Unable to share");
+  }
+};
+
+const shareDish = async () => {
+  if (!currentDish) return;
+  const url = buildShareUrl();
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: currentDish.name,
+        text: `Check out ${currentDish.name} in AR!`,
+        url,
+      });
+      track("share", {method: "native", dish_id: currentDish.id});
+      return;
+    } catch (err) {
+      if (err.name === "AbortError") return; // user cancelled — do nothing
+    }
+  }
+  copyToClipboard(url);
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// View Controls
+// ─────────────────────────────────────────────────────────────────────────────
+
+const DEFAULT_ORBIT = "0deg 75deg 105%";
+
+const resetView = () => {
+  const mv = dom.modelViewer;
+  mv.resetTurntableRotation?.();
+  mv.cameraOrbit = currentDish?.cameraOrbit ?? DEFAULT_ORBIT;
+  showToast("View reset");
+  track("reset_view", {dish_id: currentDish?.id});
+};
+
+const toggleFullscreen = () => {
+  if (!document.fullscreenElement) {
+    (
+      dom.modelViewer.requestFullscreen ??
+      dom.modelViewer.webkitRequestFullscreen
+    )?.call(dom.modelViewer);
+  } else {
+    (document.exitFullscreen ?? document.webkitExitFullscreen)?.call(document);
+  }
+  track("fullscreen_toggle", {dish_id: currentDish?.id});
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Init
+// ─────────────────────────────────────────────────────────────────────────────
+
+const init = () => {
+  // Footer year
+  if (dom.year) dom.year.textContent = new Date().getFullYear();
+
+  // Resolve dish from URL
+  const dishId = sanitizeDishId(getParam("dish"));
+  const dish = dishId ? DISHES[dishId] : null;
+
+  if (!dish) {
+    showError();
+    track("dish_not_found", {requested_id: getParam("dish")});
+    return;
+  }
+
+  loadDish(dish);
+
+  // Event bindings
+  dom.arButton.addEventListener("click", activateAR);
+  dom.shareBtn.addEventListener("click", shareDish);
+  dom.resetViewBtn.addEventListener("click", resetView);
+  dom.fullscreenBtn.addEventListener("click", toggleFullscreen);
+
+  // Dismiss hint on first 3D interaction
+  const onFirstInteraction = () => {
+    dismissHint();
+    dom.modelViewer.removeEventListener("camera-change", onFirstInteraction);
+  };
+  dom.modelViewer.addEventListener("camera-change", onFirstInteraction);
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Boot
+// ─────────────────────────────────────────────────────────────────────────────
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}

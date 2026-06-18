@@ -1,79 +1,63 @@
 /* =========================================================================
    AR Restaurant Menu — Styles
-   Mobile-first · Design tokens · Dark mode · Reduced motion
+   Mobile-first, premium, restaurant-grade
    ========================================================================= */
 
-/* =========================================================================
-   Design Tokens — Light Mode
-   ========================================================================= */
 :root {
-  /* Palette */
-  --color-bg:              #faf8f5;
-  --color-surface:         #ffffff;
-  --color-text-primary:    #1a1a1a;
-  --color-text-secondary:  #5c5c5c;
-  --color-text-muted:      #8a8a8a;
-  --color-accent:          #c9a961;
-  --color-accent-dark:     #a88a45;
-  --color-accent-light:    #e8d9b0;
-  --color-border:          #ececec;
-  --color-error:           #c94545;
-  --color-success:         #4a9d6e;
+  /* Brand Palette */
+  --color-bg: #faf8f5;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #ffffff;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #5c5c5c;
+  --color-text-muted: #8a8a8a;
+  --color-accent: #c9a961;
+  --color-accent-dark: #a88a45;
+  --color-accent-light: #e8d9b0;
+  --color-border: #ececec;
+  --color-error: #c94545;
+  --color-success: #4a9d6e;
 
   /* Gradients */
-  --gradient-primary:  linear-gradient(135deg, #1a1a1a 0%, #3a3a3a 100%);
-  --gradient-ar:       linear-gradient(135deg, #c9a961 0%, #a88a45 100%);
+  --gradient-primary: linear-gradient(135deg, #1a1a1a 0%, #3a3a3a 100%);
+  --gradient-ar: linear-gradient(135deg, #c9a961 0%, #a88a45 100%);
   --gradient-ar-hover: linear-gradient(135deg, #d4b570 0%, #b89950 100%);
 
   /* Typography */
   --font-display: "Playfair Display", Georgia, serif;
-  --font-body:    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   /* Spacing */
-  --space-xs:  4px;
-  --space-sm:  8px;
-  --space-md:  16px;
-  --space-lg:  24px;
-  --space-xl:  32px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
   --space-2xl: 48px;
 
   /* Radius */
-  --radius-sm:   8px;
-  --radius-md:   14px;
-  --radius-lg:   22px;
-  --radius-xl:   28px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
   --radius-full: 999px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0,0,0,.04), 0 1px 2px rgba(0,0,0,.06);
-  --shadow-md: 0 4px 12px rgba(0,0,0,.06), 0 2px 4px rgba(0,0,0,.04);
-  --shadow-lg: 0 12px 32px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.04);
-  --shadow-xl: 0 24px 60px rgba(0,0,0,.12), 0 8px 24px rgba(0,0,0,.06);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 24px 60px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.06);
 
-  /* Motion */
-  --ease-out:        cubic-bezier(0.22, 1, 0.36, 1);
+  /* Transitions */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --transition-fast: 180ms var(--ease-out);
   --transition-base: 300ms var(--ease-out);
   --transition-slow: 500ms var(--ease-out);
 
   /* Safe areas */
-  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-/* =========================================================================
-   Design Tokens — Dark Mode
-   ========================================================================= */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg:             #111110;
-    --color-surface:        #1c1c1a;
-    --color-text-primary:   #f5f2ec;
-    --color-text-secondary: #a8a49c;
-    --color-text-muted:     #706c64;
-    --color-border:         #2e2e2b;
-    --gradient-primary:     linear-gradient(135deg, #2a2a28 0%, #3e3e3a 100%);
-  }
 }
 
 /* =========================================================================
@@ -98,6 +82,7 @@ body {
   background: var(--color-bg);
   color: var(--color-text-primary);
   line-height: 1.6;
+  min-height: 100vh;
   min-height: 100dvh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
@@ -109,7 +94,6 @@ svg {
   display: block;
   max-width: 100%;
 }
-
 button {
   font: inherit;
   cursor: pointer;
@@ -117,7 +101,6 @@ button {
   background: none;
   color: inherit;
 }
-
 a {
   color: inherit;
   text-decoration: none;
@@ -168,7 +151,9 @@ a {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-text {
@@ -195,7 +180,7 @@ a {
 .error-content {
   text-align: center;
   max-width: 420px;
-  animation: fadeInUp 600ms var(--ease-out) both;
+  animation: fadeInUp 600ms var(--ease-out);
 }
 
 .error-icon {
@@ -205,16 +190,22 @@ a {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-10px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .error-title {
   font-family: var(--font-display);
   font-size: 36px;
   font-weight: 700;
-  letter-spacing: -0.02em;
   margin-bottom: var(--space-md);
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
 }
 
 .error-message {
@@ -225,12 +216,18 @@ a {
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* =========================================================================
-   Buttons — Base
+   Buttons
    ========================================================================= */
 .btn {
   display: inline-flex;
@@ -251,7 +248,8 @@ a {
   box-shadow: var(--shadow-md);
 }
 
-.btn-primary:is(:hover, :focus-visible) {
+.btn-primary:hover,
+.btn-primary:focus-visible {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
@@ -265,10 +263,12 @@ a {
   justify-content: center;
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
+  color: var(--color-text-primary);
   transition: all var(--transition-fast);
 }
 
-.btn-icon:is(:hover, :focus-visible) {
+.btn-icon:hover,
+.btn-icon:focus-visible {
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
   color: var(--color-accent-dark);
@@ -281,7 +281,7 @@ a {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: color-mix(in srgb, var(--color-bg) 85%, transparent);
+  background: rgba(250, 248, 245, 0.85);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
@@ -318,6 +318,7 @@ a {
   font-family: var(--font-display);
   font-weight: 600;
   font-size: 18px;
+  color: var(--color-text-primary);
   letter-spacing: -0.01em;
 }
 
@@ -336,7 +337,7 @@ a {
   min-height: 360px;
   max-height: 640px;
   position: relative;
-  background: radial-gradient(ellipse at center, var(--color-surface) 0%, var(--color-bg) 100%);
+  background: radial-gradient(ellipse at center, #ffffff 0%, #f5f2ec 100%);
 }
 
 model-viewer {
@@ -363,7 +364,7 @@ model-viewer:focus-visible {
   transform-origin: left;
 }
 
-/* AR button inside model-viewer slot */
+/* AR Button (inside model-viewer) */
 .ar-button {
   display: inline-flex;
   align-items: center;
@@ -382,7 +383,8 @@ model-viewer:focus-visible {
   z-index: 10;
 }
 
-.ar-button:is(:hover, :focus-visible) {
+.ar-button:hover,
+.ar-button:focus-visible {
   transform: translateY(-2px);
   box-shadow: var(--shadow-xl);
 }
@@ -412,7 +414,6 @@ model-viewer:focus-visible {
   transition: opacity var(--transition-slow);
   pointer-events: none;
   z-index: 5;
-  white-space: nowrap;
 }
 
 .interaction-hint.fade-out {
@@ -432,15 +433,18 @@ model-viewer:focus-visible {
   margin-top: -20px;
   position: relative;
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  animation: slideUp 500ms var(--ease-out) both;
-  /* Defer rendering cost until near viewport */
-  content-visibility: auto;
-  contain-intrinsic-size: 0 600px;
+  animation: slideUp 500ms var(--ease-out);
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .dish-info-inner {
@@ -466,8 +470,9 @@ model-viewer:focus-visible {
   font-size: 34px;
   font-weight: 700;
   line-height: 1.15;
-  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
   margin-bottom: var(--space-md);
+  letter-spacing: -0.02em;
 }
 
 .dish-description {
@@ -484,10 +489,10 @@ model-viewer:focus-visible {
   gap: var(--space-md);
   padding: var(--space-lg);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   margin-bottom: var(--space-xl);
+  border: 1px solid var(--color-border);
 }
 
 .meta-item {
@@ -509,6 +514,7 @@ model-viewer:focus-visible {
   font-family: var(--font-display);
   font-size: 18px;
   font-weight: 700;
+  color: var(--color-text-primary);
 }
 
 /* Primary AR CTA */
@@ -531,7 +537,6 @@ model-viewer:focus-visible {
   overflow: hidden;
 }
 
-/* Hover layer via pseudo-element (avoids gradient transition jank) */
 .btn-ar::before {
   content: "";
   position: absolute;
@@ -541,11 +546,13 @@ model-viewer:focus-visible {
   transition: opacity var(--transition-fast);
 }
 
-.btn-ar:is(:hover, :focus-visible)::before {
+.btn-ar:hover::before,
+.btn-ar:focus-visible::before {
   opacity: 1;
 }
 
-.btn-ar:is(:hover, :focus-visible) {
+.btn-ar:hover,
+.btn-ar:focus-visible {
   transform: translateY(-2px);
   box-shadow: 0 12px 32px rgba(201, 169, 97, 0.45);
 }
@@ -584,10 +591,12 @@ model-viewer:focus-visible {
   border-radius: var(--radius-md);
   font-weight: 600;
   font-size: 14px;
+  color: var(--color-text-primary);
   transition: all var(--transition-fast);
 }
 
-.btn-secondary:is(:hover, :focus-visible) {
+.btn-secondary:hover,
+.btn-secondary:focus-visible {
   border-color: var(--color-accent);
   color: var(--color-accent-dark);
   transform: translateY(-1px);
@@ -611,11 +620,11 @@ model-viewer:focus-visible {
    ========================================================================= */
 .toast {
   position: fixed;
-  bottom: calc(max(24px, var(--safe-bottom)) + 8px);
+  bottom: calc(24px + var(--safe-bottom));
   left: 50%;
   transform: translateX(-50%) translateY(100px);
   background: var(--color-text-primary);
-  color: var(--color-bg);
+  color: #fff;
   padding: 12px 22px;
   border-radius: var(--radius-full);
   font-size: 14px;
@@ -626,7 +635,6 @@ model-viewer:focus-visible {
   z-index: 2000;
   pointer-events: none;
   max-width: calc(100vw - 40px);
-  white-space: nowrap;
 }
 
 .toast.show {
@@ -635,15 +643,7 @@ model-viewer:focus-visible {
 }
 
 /* =========================================================================
-   Focus
-   ========================================================================= */
-:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-/* =========================================================================
-   Responsive — Tablet
+   Responsive — Tablet & Up
    ========================================================================= */
 @media (min-width: 768px) {
   .viewer-container {
@@ -652,14 +652,26 @@ model-viewer:focus-visible {
   }
 
   .dish-info {
-    padding: var(--space-2xl) var(--space-xl);
+    padding: var(--space-2xl) var(--space-xl) var(--space-2xl);
   }
 
-  .dish-title       { font-size: 44px; }
-  .dish-description { font-size: 17px; }
-  .meta-value       { font-size: 20px; }
+  .dish-title {
+    font-size: 44px;
+  }
+  .dish-description {
+    font-size: 17px;
+  }
 
-  .btn-ar,
+  .meta-value {
+    font-size: 20px;
+  }
+
+  .btn-ar {
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
   .secondary-actions {
     max-width: 480px;
     margin-left: auto;
@@ -684,7 +696,9 @@ model-viewer:focus-visible {
     max-width: 860px;
   }
 
-  .dish-title { font-size: 52px; }
+  .dish-title {
+    font-size: 52px;
+  }
 }
 
 /* =========================================================================
@@ -695,9 +709,16 @@ model-viewer:focus-visible {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* =========================================================================
+   Focus Visible
+   ========================================================================= */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 /* =========================================================================
@@ -711,6 +732,7 @@ model-viewer:focus-visible {
   .share-btn {
     display: none;
   }
-
-  body { background: #fff; }
+  body {
+    background: #fff;
+  }
 }
