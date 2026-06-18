@@ -11,7 +11,7 @@
  *   - View controls (reset, fullscreen)
  */
 
-import {DISHES} from "./prev-dishes.js";
+import {DISHES} from "./dishes.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Config
